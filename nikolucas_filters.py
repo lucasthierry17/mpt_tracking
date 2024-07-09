@@ -127,7 +127,7 @@ class ExtendedKalmanFilter:
     def __init__(self, shape):
         self.shape = shape
         self.state = np.zeros(shape)  # Initial state as 1D array
-        self.P = np.eye(shape) * 10000  # Initial covariance matrix
+        self.P = np.eye(shape)  # Initial covariance matrix
         self.R = np.array([[0.0100, 0.0000], 
                            [0.0000, 0.0025]])  # Measurement noise covariance matrix
 

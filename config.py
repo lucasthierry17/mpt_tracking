@@ -19,9 +19,9 @@ filters = {
         "color": [0.6, 0.6, 0.2],
         "constantposition": nikolucas_filters.KalmanFilter(2),
         "constantvelocity": nikolucas_filters.AdaptiveKalmanFilter(),
-        "constantvelocity2": kalman.KalmanFilter(2),
-        "constantturn": kalman.KalmanFilter(2),
+        "constantvelocity2": nikolucas_filters.KalmanCV(2),
+        "constantturn": nikolucas_filters.ConstantTurnKalmanFilter(2),
         "randomnoise": nikolucas_filters.RandomNoise(2, 2),
-        "angular": nikolucas_filters.Angular(2)
+        "angular": nikolucas_filters.ExtendedKalmanFilter(2)
     }
 }

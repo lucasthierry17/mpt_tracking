@@ -1,17 +1,26 @@
 import numpy as np
 
+
 class ConstantVelocityKalmanFilter:
     def __init__(self):
         self.state_dim = 4
         self.measurement_dim = 2
         self.x = np.zeros((self.state_dim, 1))  # Initial state vector [x, y, vx, vy]
-        self.P = np.eye(self.state_dim)  # Initial covariance matrix with some uncertainty
-        self.F = np.eye(self.state_dim)  # State transition matrix (to be updated with dt)
+        self.P = np.eye(
+            self.state_dim
+        )  # Initial covariance matrix with some uncertainty
+        self.F = np.eye(
+            self.state_dim
+        )  # State transition matrix (to be updated with dt)
         self.H = np.zeros((self.measurement_dim, self.state_dim))  # Observation matrix
         self.H[0, 0] = 1
         self.H[1, 1] = 1
-        self.Q = np.eye(self.state_dim) * 1e-6  # Small process noise to avoid overconfidence
-        self.R = np.eye(self.measurement_dim) * 0.04  # Measurement noise covariance matrix
+        self.Q = (
+            np.eye(self.state_dim) * 1e-6
+        )  # Small process noise to avoid overconfidence
+        self.R = (
+            np.eye(self.measurement_dim) * 0.04
+        )  # Measurement noise covariance matrix
 
     def reset(self, measurement):
         self.x[:2] = measurement[:2].reshape(2, 1)

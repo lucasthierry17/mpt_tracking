@@ -3,6 +3,7 @@ import kalman
 import filter_randomnoise
 import nikolucas_filters
 import now_test
+import numpy as np
 
 # TODO: Add your filters here
 filters = {
@@ -20,8 +21,8 @@ filters = {
         "constantposition": nikolucas_filters.KalmanFilter(2),
         "constantvelocity": nikolucas_filters.AdaptiveKalmanFilter(),
         "constantvelocity2": nikolucas_filters.KalmanCV(2),
-        "constantturn": nikolucas_filters.ConstantTurnKalmanFilter(2),
+        "constantturn": nikolucas_filters.ConstantTurnRateFilter(4),
         "randomnoise": nikolucas_filters.RandomNoise(2, 2),
-        "angular": nikolucas_filters.ExtendedKalmanFilter(2)
-    }
+        "angular": nikolucas_filters.ExtendedKalmanFilter(2),
+    },
 }

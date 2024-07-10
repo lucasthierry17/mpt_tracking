@@ -1,18 +1,25 @@
 import numpy as np
 import pandas as pd
 
+
 class AdaptiveKalmanFilter:
     def __init__(self):
         self.state_dim = 4
         self.measurement_dim = 2
         self.x = np.zeros((self.state_dim, 1))  # Initial state vector [x, y, vx, vy]
-        self.P = np.eye(self.state_dim)  # Initial covariance matrix with some uncertainty
-        self.F = np.eye(self.state_dim)  # State transition matrix (to be updated with dt)
+        self.P = np.eye(
+            self.state_dim
+        )  # Initial covariance matrix with some uncertainty
+        self.F = np.eye(
+            self.state_dim
+        )  # State transition matrix (to be updated with dt)
         self.H = np.zeros((self.measurement_dim, self.state_dim))  # Observation matrix
         self.H[0, 0] = 1
         self.H[1, 1] = 1
         self.Q = np.eye(self.state_dim) * 1e-6  # Initial process noise
-        self.R = np.eye(self.measurement_dim) * 0.04  # Measurement noise covariance matrix
+        self.R = (
+            np.eye(self.measurement_dim) * 0.04
+        )  # Measurement noise covariance matrix
         self.alpha = 0.00001  # Adaptation rate for Q
 
     def reset(self, measurement):
@@ -44,7 +51,6 @@ class AdaptiveKalmanFilter:
         return self.x[:2].flatten()
 
 
-
 """
 Was ist der Kalman Filter?
 ist ein rekursiver Algorithmus, der zur Schätzung des Zustands eines dynamischen Systems verwendet
@@ -61,6 +67,7 @@ Ziel: korrigieren der Vorhersage basierend auf der neuen Messung
 
 state_dim = 2
 measurement_dim = 2
+
 
 class KalmanFilter:
     def __init__(self, state_dim):
@@ -89,47 +96,55 @@ class KalmanFilter:
         self.P = (np.eye(self.state_dim) - K @ self.H) @ P_pred
 
         return self.x
-    
+
 
 class RandomNoise:
     def __init__(self, state_dim=2, measurement_dim=2):
         self.state_dim = state_dim
         self.measurement_dim = measurement_dim
         self.x = np.zeros((state_dim, 1))  # Initial state vector
-        self.P = np.eye(state_dim) * 1.0  # Initial covariance matrix with some uncertainty
+        self.P = (
+            np.eye(state_dim) * 1.0
+        )  # Initial covariance matrix with some uncertainty
         self.F = np.eye(state_dim)  # State transition matrix
         self.H = np.eye(measurement_dim, state_dim)  # Observation matrix
         self.Q = np.eye(state_dim) * 1e-5  # Small process noise to avoid overconfidence
 
     def reset(self, measurement):
-        self.x = measurement[:self.state_dim].reshape(self.state_dim, 1)
+        self.x = measurement[: self.state_dim].reshape(self.state_dim, 1)
         self.P = np.eye(self.state_dim) * 1  # Reinitialize P with some uncertainty
         return self.x.flatten()
 
     def update(self, dt, measurement):
         # Extract the measured positions and the measurement noise covariance matrix
-        z = measurement[:self.measurement_dim].reshape(self.measurement_dim, 1)
+        z = measurement[: self.measurement_dim].reshape(self.measurement_dim, 1)
         Rt = measurement[2:].reshape(2, 2)
-        
+
         # Prediction step
         x_pred = self.F @ self.x
         P_pred = self.F @ self.P @ self.F.T + self.Q
 
         # Update step
         S = self.H @ P_pred @ self.H.T + Rt  # Innovation covariance
-        K = P_pred @ self.H.T @ np.linalg.inv(S + np.eye(S.shape[0]) * 1e-9)  # Kalman gain with numerical stability
+        K = (
+            P_pred @ self.H.T @ np.linalg.inv(S + np.eye(S.shape[0]) * 1e-9)
+        )  # Kalman gain with numerical stability
         self.x = x_pred + K @ (z - self.H @ x_pred)
         self.P = (np.eye(self.state_dim) - K @ self.H) @ P_pred
 
         return self.x.flatten()
 
+
 class ExtendedKalmanFilter:
     def __init__(self, shape):
         self.shape = shape
         self.state = np.zeros(shape)  # Initial state as 1D array
-        self.P = np.eye(shape)  # Initial covariance matrix
-        self.R = np.array([[0.0100, 0.0000], 
-                           [0.0000, 0.0025]])  # Measurement noise covariance matrix
+        self.P = (
+            np.eye(shape) * 10000
+        )  # Initial covariance matrix with high uncertainty
+        self.R = np.array(
+            [[0.0100, 0.0000], [0.0000, 0.0025]]
+        )  # Measurement noise covariance matrix
 
     def reset(self, measurement):
         # Convert polar to Cartesian coordinates for the initial state
@@ -141,45 +156,48 @@ class ExtendedKalmanFilter:
         return self.state
 
     def update(self, dt, measurement):
-        # Predict step
+        # Predict step (state remains the same for a static object)
         F = np.eye(self.shape)  # State transition matrix
         self.state = np.dot(F, self.state)  # Predict state
         self.P = np.dot(F, np.dot(self.P, F.T))  # Predict covariance
 
         # Measurement update step
         r, phi = measurement
-        hx = np.array([np.sqrt(self.state[0]**2 + self.state[1]**2), 
-                       np.arctan2(self.state[1], self.state[0])])
-        
+        hx = np.array(
+            [
+                np.sqrt(self.state[0] ** 2 + self.state[1] ** 2),
+                np.arctan2(self.state[1], self.state[0]),
+            ]
+        )
+
         H = self.jacobi(self.state)
         S = np.dot(H, np.dot(self.P, H.T)) + self.R
         K = np.dot(self.P, np.dot(H.T, np.linalg.inv(S)))
-        
+
         y = np.array([r, phi]) - hx
         y[1] = self.normalize_angle(y[1])
-        
+
         self.state = self.state + np.dot(K, y)
         self.P = self.P - np.dot(K, np.dot(H, self.P))
-        
+
         return self.state
 
     def jacobi(self, state):
         x, y = state
-        r2 = x**2 + y**2
-        r = np.sqrt(r2)
-        
-        H = np.array([[x/r, y/r],
-                      [-y/r2, x/r2]])
+        r = np.sqrt(x**2 + y**2)
+        H = np.array([[x / r, y / r], [-y / (r**2), x / (r**2)]])
         return H
-    
-    def normalize_angle(self, angle):
+
+    @staticmethod
+    def normalize_angle(angle):
         while angle > np.pi:
-            angle -= 2.0 * np.pi
+            angle -= 2 * np.pi
         while angle < -np.pi:
-            angle += 2.0 * np.pi
+            angle += 2 * np.pi
         return angle
 
-class KalmanCV():
+
+class KalmanCV:
     def __init__(self, shape):
         self.shape = shape
         self.dt = 1  # Initial time step, will be updated dynamically
@@ -196,7 +214,7 @@ class KalmanCV():
         # Measurement matrix: only position is measured directly
         self.H = np.zeros((10, 4))
         for i in range(5):
-            self.H[i*2:i*2+2, :2] = np.eye(2)
+            self.H[i * 2 : i * 2 + 2, :2] = np.eye(2)
 
     def reset(self, measurement):
         # Extract initial position from the first measurement
@@ -213,6 +231,18 @@ class KalmanCV():
         F[0, 2] = self.dt
         F[1, 3] = self.dt
 
+        # Dynamic process noise covariance matrix
+        q = 1.5  # Process noise magnitude, can be tuned
+        dt2 = self.dt**2
+        dt3 = self.dt**3 / 2
+        dt4 = self.dt**4 / 4
+        self.Q = (
+            np.array(
+                [[dt4, 0, dt3, 0], [0, dt4, 0, dt3], [dt3, 0, dt2, 0], [0, dt3, 0, dt2]]
+            )
+            * q
+        )
+
         # Predict
         self.x = F @ self.x
         self.P = F @ self.P @ F.T + self.Q
@@ -231,69 +261,140 @@ class KalmanCV():
         self.P = (np.eye(4) - K @ self.H) @ self.P
 
         return self.x[:2]
-    
-class ConstantTurnKalmanFilter():
-    def __init__(self, shape):
-        self.shape = shape
-        self.dt = 1  # Initial time step, will be updated dynamically
 
-        # State vector: [x_position, y_position, x_velocity, y_velocity]
-        self.x = np.zeros(4)
 
-        # State covariance matrix
-        self.P = np.eye(4) * 1000
+class ConstantTurnRateFilter:
+    """
+    A class representing a constant turn rate filter.
 
-        # Process noise covariance matrix
-        self.Q = np.eye(4)
+    Attributes:
+        state_dim (int): The dimension of the state vector.
+        turn_rate (float): The turn rate in radians per time step.
+        window_size (int): The size of the moving average window.
 
-        # Measurement matrix: only position is measured directly
-        self.H = np.zeros((10, 4))
-        for i in range(5):
-            self.H[i*2:i*2+2, :2] = np.eye(2)
+    Methods:
+        __init__(self, state_dim, turn_rate=0.001, window_size=5): Initializes the filter.
+        reset(self, measurement): Resets the filter with a measurement.
+        predict(self, dt): Predicts the state of the filter.
+        update(self, dt, measurement): Updates the state of the filter.
+
+    """
+
+    def __init__(self, state_dim, turn_rate=0.001, window_size=5):
+        """
+        Initializes the constant turn rate filter.
+
+        Args:
+            state_dim (int): The dimension of the state vector.
+            turn_rate (float, optional): The turn rate in radians per time step. Defaults to 0.001.
+            window_size (int, optional): The size of the moving average window. Defaults to 5.
+
+        """
+        self.state_dim = state_dim
+        self.turn_rate = turn_rate  # Turn rate in radians per time step
+        self.state = None
+        self.covariance = None
+        self.process_noise = np.diag(
+            [1e-4, 1e-4, 1e-3, 1e-3, 1e-2, 1e-2]
+        )  # Tuning process noise
+        self.window_size = window_size
+        self.predictions = []
 
     def reset(self, measurement):
-        # Extract initial position from the first measurement
-        initial_position = np.mean(np.reshape(measurement[:10], (5, 2)), axis=0)
-        self.x[:2] = initial_position  # Set initial position in the state vector
-        self.x[2:] = 0  # Initial velocity is assumed to be zero
-        return self.x[:2]
+        """
+        Resets the filter with a measurement.
 
-    def update(self, dt, measurement, turn_rate):
-        self.dt = dt
+        Args:
+            measurement (array-like): The measurement used to reset the filter.
 
-        # State transition matrix with constant turn rate
-        F = np.eye(4)
-        F[0, 2] = self.dt
-        F[1, 3] = self.dt
-        
-        # Rotation matrix for velocity
-        theta = turn_rate * self.dt
+        Returns:
+            array-like: The initial position of the filter.
+
+        """
+        x_init = np.mean(measurement[:10:2])
+        y_init = np.mean(measurement[1:10:2])
+        self.state = np.array([x_init, y_init, 0, 0])  # Initial position, zero velocity
+        self.covariance = np.eye(self.state_dim) * 1e3  # High initial uncertainty
+        self.predictions = [
+            self.state[:2]
+        ] * self.window_size  # Initialize the moving average window
+        return self.state[:2]  # Return only the position
+
+    def predict(self, dt):
+        """
+        Predicts the state of the filter.
+
+        Args:
+            dt (float): The time step.
+
+        Returns:
+            array-like: The predicted state of the filter.
+
+        """
+        theta = self.turn_rate * dt
         cos_theta = np.cos(theta)
         sin_theta = np.sin(theta)
-        
-        rotation_matrix = np.array([
-            [cos_theta, -sin_theta],
-            [sin_theta, cos_theta]
-        ])
-        
-        # Apply rotation to velocity components
-        F[2:4, 2:4] = rotation_matrix
 
-        # Predict
-        self.x = F @ self.x
-        self.P = F @ self.P @ F.T + self.Q
+        # State transition matrix incorporating turn rate
+        F = np.array(
+            [
+                [1, 0, dt, 0],
+                [0, 1, 0, dt],
+                [0, 0, cos_theta, -sin_theta],
+                [0, 0, sin_theta, cos_theta],
+            ]
+        )
 
-        # Extract measurements
-        z = measurement[:10]
-        R = np.diag(measurement[10:])
+        self.state = F @ self.state
+        self.covariance = F @ self.covariance @ F.T + self.process_noise
+        return self.state
 
-        # Compute Kalman Gain
-        S = self.H @ self.P @ self.H.T + R
-        K = self.P @ self.H.T @ np.linalg.inv(S)
+    def update(self, dt, measurement):
+        """
+        Updates the state of the filter.
 
-        # Update
-        y = z - self.H @ self.x
-        self.x = self.x + K @ y
-        self.P = (np.eye(4) - K @ self.H) @ self.P
+        Args:
+            dt (float): The time step.
+            measurement (array-like): The measurement used to update the filter.
 
-        return self.x[:2]
+        Returns:
+            array-like: The smoothed position of the filter.
+
+        """
+        H = np.zeros((10, self.state_dim))
+        for i in range(5):
+            H[2 * i, 0] = 1
+            H[2 * i + 1, 1] = 1
+
+        R = np.diag(measurement[10:] ** 2)
+
+        # Predict step
+        self.predict(dt)
+
+        # Measurement prediction
+        z_pred = H @ self.state
+
+        # Innovation or measurement residual
+        y = measurement[:10] - z_pred
+
+        # Innovation (or residual) covariance
+        S = H @ self.covariance @ H.T + R
+
+        # Optimal Kalman gain
+        K = self.covariance @ H.T @ np.linalg.inv(S)
+
+        # Update state estimate
+        self.state = self.state + K @ y
+
+        # Update the state covariance matrix
+        I = np.eye(self.state_dim)
+        self.covariance = (I - K @ H) @ self.covariance
+
+        # Add the current position to the moving average window
+        self.predictions.append(self.state[:2])
+        if len(self.predictions) > self.window_size:
+            self.predictions.pop(0)
+
+        # Return the smoothed position (average of the window)
+        smoothed_position = np.mean(self.predictions, axis=0)
+        return smoothed_position

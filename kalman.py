@@ -17,6 +17,7 @@ Ziel: korrigieren der Vorhersage basierend auf der neuen Messung
 state_dim = 2
 measurement_dim = 2
 
+
 class KalmanFilter:
     def __init__(self, state_dim):
         self.state_dim = state_dim
